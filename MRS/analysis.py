@@ -4,7 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 
-import files as io
 import nitime as nt
 import nitime.timeseries as nts
 import nitime.analysis as nta
@@ -12,7 +11,8 @@ import scipy.fftpack as fft
 
 import MRS.utils as ut
 
-def coil_combine(data, w_idx=[0,1,2,3]):
+
+def coil_combine(data, w_idx=[1,2,3]):
     """
     Combine data across coils based on the amplitude of the water peak,
     according to:
@@ -77,8 +77,8 @@ def coil_combine(data, w_idx=[0,1,2,3]):
     idxes_nonw[0] = False
     w_supp_data = data[:,np.where(idxes_nonw),:,:]
     
-    fft_w = fft.fft(w_data)
-    fft_w_supp = fft.fft(w_supp_data)
+    fft_w = fft.fft(w_data).squeeze()
+    fft_w_supp = fft.fft(w_supp_data).squeeze()
 
     # We use the water peak (the 0th frequency) as the reference:
     zero_freq_w = np.abs(fft_w[0])
@@ -87,7 +87,7 @@ def coil_combine(data, w_idx=[0,1,2,3]):
     zero_freq_w_across_coils = np.sqrt(np.sum(zero_freq_w**2,-1))
     w = zero_freq_w/zero_freq_w_across_coils[...,np.newaxis]
 
-    # We average across 
+    # We average across echos and repeats:
     w = np.mean(np.mean(w,0),0)
 
     # We will use the phase of this peak to align the phases:
@@ -100,58 +100,78 @@ def coil_combine(data, w_idx=[0,1,2,3]):
 
     # Dot product each one of them and ifft back into the time-domain
     na = np.newaxis # Short-hand
-    weighted_w_data = fft.ifft(np.sum(w[na, na, na, :] * fft_w, -1))
-    weighted_w_supp_data = fft.ifft(np.sum(w[na, na, na, :] * fft_w_supp, -1))
+    weighted_w_data = fft.ifft(np.sum(w[na, na, na, :] * fft_w,
+                                      axis=-1), axis=-1)
+    weighted_w_supp_data = fft.ifft(np.sum(w[na, na, na, :] * fft_w_supp,
+                                           axis=-1),axis=-1)
     # Transpose, so that the time dimension is last:
-    return np.squeeze(weighted_w_data).T, np.squeeze(weighted_w_supp_data).T
+    w_out = np.squeeze(weighted_w_data).T
+    w_supp_out = np.squeeze(weighted_w_supp_data).T
+    # Normalize to sum to number of measurements:
+    w_out = w_out * (w_out.shape[-1] / np.sum(w_out))
+    w_supp_out = w_supp_out * (w_supp_out.shape[-1] / np.sum(w_supp_out))
+    return w_out, w_supp_out 
 
-def get_spectra(data, sampling_rate=5000.0,
-                spect_method=dict(NFFT=1024, n_overlap=1023,
-                detrend=mlab.detrend_linear,
-                BW=2)):
+def get_spectra(data, filt_method = dict(lb=0.1, filt_order=256),
+                spect_method=dict(NFFT=1024, n_overlap=1023, BW=2)):
     """
     Derive the spectra from MRS data
 
     Parameters
     ----------
-    data : tuple
-       (w_data, w_supp_data), where w_data contains data that is not
-       water-suppressed (contains a huge water peak in the spectrum) and
-       w_supp_data is water-suppressed. This is the output of `coil_combine`s 
+    data : nitime TimeSeries class instance
+        Time-series object with data of shape (echos, transients, time-points),
+        containing the FID data.
+
+    filt_method : dict
+        Details for the filtering method. A FIR zero phase-delay method is used
+        with parameters set according to these parameters
+        
+    spect_method : dict
+        Details for the spectral analysis. Per default, we use 
+    
+
+    Returns
+    -------
+    f, spectrum_water, spectrum_water_suppressed :
+
+    f is the center frequency of the frequencies represented in the
+    spectra. The first spectrum is for the data with water not suppressed and
+    the s
+
+    Notes
+    -----
+    This function performs the following operations:
+
+    1. Filtering.
+    2. Apodizing/windowing.
+    3. Spectral analysis.
+
     
     """
-    w_data, w_supp_data = data
-
-    ts_w = nts.TimeSeries(w_data, sampling_rate=sampling_rate)
-    ts_nonw = nts.TimeSeries(w_supp_data,sampling_rate=sampling_rate)
-
-    S_w = nta.SpectralAnalyzer(ts_w,
-                               method=dict(NFFT=spect_method['NFFT']),
-                               BW=spect_method['BW'])
-
-    S_nonw = nta.SpectralAnalyzer(ts_nonw,
-                                  method=dict(NFFT=spect_method['NFFT']),
-                                  BW=spect_method['BW'])
-
-    f_w, c_w = S_w.psd
-    f_nonw, c_nonw = S_nonw.psd
-
-    # Return the tuple (f_w should be the same as f_nonw, so return only one of
-    # them):
-    return f_w, np.real(c_w), np.real(c_nonw)
-
+    filtered = nta.FilterAnalyzer(data, **filt_method).fir
+    apodized = ut.apodize(filtered)
+    S = nta.SpectralAnalyzer(apodized,
+                             method=dict(NFFT=spect_method['NFFT'],
+                                         n_overlap=spect_method['n_overlap']),
+                             BW=spect_method['BW'])
+    
+    f, c = S.spectrum_fourier
+    
+    return f, np.real(c)
 
 def normalize_water(w_sig, nonw_sig, idx):
     """
     Normalize the water-suppressed signal by the signal that is not
     water-suppressed, to get rid of the residual water peak.
-    
+
+    Might not be necessary if appropriate filtering is applied to the signal.
     """
     scale_fac = np.mean(w_sig[idx]/nonw_sig[idx])
     approx = w_sig/scale_fac
     corrected = nonw_sig - approx
     return corrected
 
-if "__name__" == "__main__":
+if __name__ == "__main__":
     # There will be some testing in here
     pass
