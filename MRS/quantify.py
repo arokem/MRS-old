@@ -90,7 +90,7 @@ class Fitter(object):
     """
 
     """
-    def __init__(self, ppm, alpha, l1_ratio):
+    def __init__(self, ppm, alpha=0.001, l1_ratio=0.5):
         """
 
         """
