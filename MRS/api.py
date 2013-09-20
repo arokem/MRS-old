@@ -14,7 +14,8 @@ class GABA(object):
     """
 
     def __init__(self, in_file, line_broadening=5, zerofill=100,
-                 filt_method=None, min_ppm=-0.7, max_ppm=4.3):
+                 filt_method=None, min_ppm=-0.7, max_ppm=4.3,
+                 spectrum_method=dict(algorithm='fft')):
         """
         Parameters
         ----------
@@ -34,8 +35,29 @@ class GABA(object):
 
         fit_lb, fit_ub : float
            The limits for the part of the spectrum for which we fit the
-           creatine and GABA peaks. 
-        
+           creatine and GABA peaks.
+
+        spectrum_method : dict
+            To set the spectral analysis method used, pass a dict with
+            parameters :
+
+            algorithm : 'fft', 'periodogram', 'multi_taper' Which run an
+            apodized FFT-based, a periodogram, or a multi-taper based spectral
+            analysis. Set to 'fft' per default.
+
+            NFFT : For algorithms other than 'fft', sets the NFFT for the
+            windowing function.
+
+            n_overlap : For algorithms other than 'fft', sets the overlap
+            between windowing functions.
+
+            BW : For 'multi_taper', sets the bandwidth.
+
+        Note
+        ----
+
+        The spectrum_method dict is passed as input to to nitime's
+        SpectralAnalyzer class, so see documentation there as well.
         """
         # The nifti files follow the strange nifti convention, but we want to
         # use our own logic, which is transients on dim 0 and time on dim -1:
@@ -75,10 +97,11 @@ class GABA(object):
         self.data = ana.subtract_water(w_data, w_supp_data)
 
         _, spectra = ana.get_spectra(self.data,
-                                     line_broadening=line_broadening,
-                                     zerofill=zerofill,
-                                     filt_method=filt_method)
-
+                                        line_broadening=line_broadening,
+                                        zerofill=zerofill,
+                                        filt_method=filt_method,
+                                        spectrum_method=spectrum_method)
+                                           
         self.f_hz = f_hz
         # Convert from Hz to ppm and extract the part you are interested in.
         f_ppm = ut.freq_to_ppm(self.f_hz)
