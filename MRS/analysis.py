@@ -247,8 +247,9 @@ def get_spectra(data, filt_method=dict(lb=0.1, filt_order=256),
 
     # Check the value of the algorithm and pop it out of here:
     algo = spectrum_method.pop('algorithm', None)
-    if (algo == 'fft') or (algo is None):
-       algo = 'fft'
+    if algo is None:
+        algo = 'fft'
+    if (algo == 'fft') or (algo == 'periodogram'):
        if line_broadening is not None:
           lbr_time = line_broadening * np.pi  # Conversion from Hz to
                                               # time-constant, see Keeler page
