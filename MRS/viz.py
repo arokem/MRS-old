@@ -23,9 +23,10 @@ def stacked_spectra(f, spectra, fig=None):
         fig = fig
         ax = fig.get_axes()[0]
 
+    offset = 0
     for s in spectra:
-        ax.plot(f, s+np.std(s)/2.0, color='k')
-        offset += np.var(s)
+        ax.plot(f, s.squeeze()+offset, color='k')
+        offset += np.std(s)/2.0
     ax.invert_xaxis()
     return fig
 
