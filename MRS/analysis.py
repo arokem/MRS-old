@@ -249,19 +249,15 @@ def get_spectra(data, filt_method=dict(lb=0.1, filt_order=256),
     algo = spectrum_method.pop('algorithm', None)
     if algo is None:
         algo = 'fft'
-    if (algo == 'fft') or (algo == 'periodogram'):
-       if line_broadening is not None:
-          lbr_time = line_broadening * np.pi  # Conversion from Hz to
-                                              # time-constant, see Keeler page
-                                              # 94
-       else:
-          lbr_time = 0
 
-       apodized = ut.line_broadening(filtered, lbr_time)
-
-    # Apodization is only really useful for FFT:
+    if line_broadening is not None:
+       lbr_time = line_broadening * np.pi  # Conversion from Hz to
+                                           # time-constant, see Keeler page
+                                           # 94
     else:
-       apodized = filtered
+       lbr_time = 0
+
+    apodized = ut.line_broadening(filtered, lbr_time)
 
     if zerofill is not None:
          new_apodized = np.concatenate([apodized.data,
@@ -296,7 +292,8 @@ def get_spectra(data, filt_method=dict(lb=0.1, filt_order=256),
 
 def subtract_water(w_sig, w_supp_sig):
     """
-    Subtract the residual water signal from the 
+    Subtract the residual water signal from the water-suppressed measurement.
+
     Normalize the water-suppressed signal by the signal that is not
     water-suppressed, to get rid of the residual water peak.
 
@@ -319,8 +316,8 @@ def subtract_water(w_sig, w_supp_sig):
     mean_water = np.mean(w_sig, 0)
 
     scale_factor = water_only/mean_nw
-
     corrected = w_supp_sig - water_only/scale_factor[...,0,np.newaxis]
+    
     return corrected
 
 

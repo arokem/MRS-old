@@ -65,43 +65,69 @@ class GABA(object):
                                      [1,2,3,4,5,0]).squeeze()
 
         w_data, w_supp_data = ana.coil_combine(self.raw_data)
-        f_hz, w_supp_spectra = ana.get_spectra(w_supp_data,
-                                           line_broadening=line_broadening,
-                                           zerofill=zerofill,
-                                           filt_method=filt_method)
+        # Get rid of residual water signal:
+        w_supp_data = ana.subtract_water(w_data, w_supp_data)
 
-        self.w_supp_spectra = w_supp_spectra
+        self.w_data = w_data
+        self.w_supp_data = w_supp_data
+        
+        ## f_hz, w_supp_spectra = ana.get_spectra(w_supp_data,
+        ##                                    line_broadening=line_broadening,
+        ##                                    zerofill=zerofill,
+        ##                                    filt_method=filt_method)
 
-        # Often, there will be some small offset from the on-resonance
-        # frequency, which we can correct for. We fit a Lorentzian to each of
-        # the spectra from the water-suppressed data, so that we can get a
-        # phase-corrected estimate of the frequeny shift, instead of just
-        # relying on the frequency of the maximum:
-        self.w_supp_lorentz = np.zeros(w_supp_spectra.shape[:-1] + (6,))
-        for ii in range(self.w_supp_lorentz.shape[0]):
-            for jj in range(self.w_supp_lorentz.shape[1]):
-                self.w_supp_lorentz[ii,jj]=\
-                    ana._do_lorentzian_fit(f_hz, w_supp_spectra[ii,jj])
+        ## self.w_supp_spectra = w_supp_spectra
 
-        # We store the frequency offset for each transient/echo:
-        self.freq_offset = self.w_supp_lorentz[..., 0]
+        ## # Often, there will be some small offset from the on-resonance
+        ## # frequency, which we can correct for. We fit a Lorentzian to each of
+        ## # the spectra from the water-suppressed data, so that we can get a
+        ## # phase-corrected estimate of the frequency shift, instead of just
+        ## # relying on the frequency of the maximum:
+        ## self.w_supp_lorentz = np.zeros(w_supp_spectra.shape[:-1] + (6,))
+        ## for ii in range(self.w_supp_lorentz.shape[0]):
+        ##     for jj in range(self.w_supp_lorentz.shape[1]):
+        ##         self.w_supp_lorentz[ii,jj]=\
+        ##             ana._do_lorentzian_fit(f_hz, w_supp_spectra[ii,jj])
 
-        # But for now, we average over all the transients/echos for the
-        # correction: 
-        mean_freq_offset = np.mean(self.w_supp_lorentz[..., 0])
-        f_hz = f_hz - mean_freq_offset
+        ## # But for now, we average over all the transients/echos for the
+        ## # correction of the frequency: 
+        ## mean_freq_offset = np.mean(self.w_supp_lorentz[..., 0])
+        ## f_hz = f_hz - mean_freq_offset
+
+        ## # Rephase the water peak to 0 in each echo/transient:
+        ## self.w_supp_fid = w_supp_data * np.exp(-1j *
+        ##                                 self.w_supp_lorentz[..., 3, np.newaxis])
     
-        self.water_fid = w_data
-        self.w_supp_fid = w_supp_data
-        # This is the time-domain signal of interest, combined over coils:
-        self.data = ana.subtract_water(w_data, w_supp_data)
+        ## f_hz, w_spectra = ana.get_spectra(w_data,
+        ##                                   line_broadening=line_broadening,
+        ##                                   zerofill=zerofill,
+        ##                                   filt_method=filt_method)
 
-        _, spectra = ana.get_spectra(self.data,
-                                        line_broadening=line_broadening,
-                                        zerofill=zerofill,
-                                        filt_method=filt_method,
-                                        spectrum_method=spectrum_method)
-                                           
+        ## self.w_lorentz = np.zeros(w_spectra.shape[:-1] + (6,))
+        ## for ii in range(self.w_lorentz.shape[0]):
+        ##     for jj in range(self.w_lorentz.shape[1]):
+        ##         self.w_lorentz[ii,jj]=\
+        ##             ana._do_lorentzian_fit(f_hz, w_spectra[ii,jj])
+
+        
+        ## self.water_fid = w_data * np.exp(-1j *
+        ##                                  self.w_lorentz[..., 3, np.newaxis]) 
+
+        ## _, spectra = ana.get_spectra(self.water_fid,
+        ##                              line_broadening=line_broadening,
+        ##                              zerofill=zerofill,
+        ##                              filt_method=filt_method,
+        ##                              spectrum_method=spectrum_method)
+
+        ## self.water_spectra = spectra
+        
+        f_hz, spectra = ana.get_spectra(w_supp_data,
+                                     line_broadening=line_broadening,
+                                     zerofill=zerofill,
+                                     filt_method=filt_method,
+                                     spectrum_method=spectrum_method)
+
+        
         self.f_hz = f_hz
         # Convert from Hz to ppm and extract the part you are interested in.
         f_ppm = ut.freq_to_ppm(self.f_hz)
