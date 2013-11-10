@@ -77,7 +77,7 @@ class GABA(object):
         ##                                    filt_method=filt_method)
 
         ## self.w_supp_spectra = w_supp_spectra
-
+        
         ## # Often, there will be some small offset from the on-resonance
         ## # frequency, which we can correct for. We fit a Lorentzian to each of
         ## # the spectra from the water-suppressed data, so that we can get a
@@ -87,7 +87,8 @@ class GABA(object):
         ## for ii in range(self.w_supp_lorentz.shape[0]):
         ##     for jj in range(self.w_supp_lorentz.shape[1]):
         ##         self.w_supp_lorentz[ii,jj]=\
-        ##             ana._do_lorentzian_fit(f_hz, w_supp_spectra[ii,jj])
+        ##             ana._do_lorentzian_fit(f_hz, w_supp_spectra[ii,jj],
+        ##                                    bounds) 
 
         ## # But for now, we average over all the transients/echos for the
         ## # correction of the frequency: 
@@ -107,7 +108,7 @@ class GABA(object):
         ## for ii in range(self.w_lorentz.shape[0]):
         ##     for jj in range(self.w_lorentz.shape[1]):
         ##         self.w_lorentz[ii,jj]=\
-        ##             ana._do_lorentzian_fit(f_hz, w_spectra[ii,jj])
+        ##             ana._do_lorentzian_fit(f_hz, w_spectra[ii,jj], bounds)
 
         
         ## self.water_fid = w_data * np.exp(-1j *
