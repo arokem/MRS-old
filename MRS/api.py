@@ -53,7 +53,7 @@ class GABA(object):
         # Often, there will be some small offset from the on-resonance
         # frequency, which we can correct for. We fit a Lorentzian to each of
         # the spectra from the water-suppressed data, so that we can get a
-        # phase-corrected estimate of the frequeny shift, instead of just
+        # phase-corrected estimate of the frequency shift, instead of just
         # relying on the frequency of the maximum:
         self.w_supp_lorentz = np.zeros(w_supp_spectra.shape[:-1] + (6,))
         for ii in range(self.w_supp_lorentz.shape[0]):
@@ -87,13 +87,11 @@ class GABA(object):
         self.idx = slice(idx1, idx0)
         self.f_ppm = f_ppm
     
-        # The first echo (off-resonance) is in the first output 
-        self.echo_on = spectra[:, 1]
-        # The on-resonance is in the second:
-        self.echo_off = spectra[:, 0]
+        self.echo_off = spectra[:, 1]
+        self.echo_on = spectra[:, 0]
 
         # Calculate sum and difference:
-        self.diff_spectra = self.echo_off - self.echo_on
+        self.diff_spectra = self.echo_on - self.echo_off
         self.sum_spectra = self.echo_off + self.echo_on
 
         
@@ -134,10 +132,10 @@ class GABA(object):
         self.water_params = params
         self.water_idx = ut.make_idx(self.f_ppm, min_ppm, max_ppm)
         mean_params = stats.nanmean(params, 0)
-        self.water_auc = self._calc_auc(ut.lorentzian, params)
+        self.water_auc = self._calc_auc(ut.lorentzian, params, self.water_idx)
 
 
-    def _calc_auc(self, model, params):
+    def _calc_auc(self, model, params, idx):
         """
         Helper function to calculate the area under the curve of a model
 
@@ -153,6 +151,11 @@ class GABA(object):
             the model function expects after the first (frequency)
             parameter. The second column should control the amplitude of the
             function.
+
+        idx :
+           Indices to the part of the spectrum over which AUC will be
+           calculated.
+
         """
 
 
@@ -164,13 +167,12 @@ class GABA(object):
         delta_f = np.abs(self.f_ppm[1]-self.f_ppm[0])
         p = np.copy(params)
         for t in range(auc.shape[0]):
-            model1 = model(self.f_ppm[self.idx], *p[t])
+            model1 = model(self.f_ppm[idx], *p[t])
             # This controls the amplitude in both the Gaussian and the
             # Lorentzian: 
             p[t, 1] = 0
-            model0 = model(self.f_ppm[self.idx], *p[t])
+            model0 = model(self.f_ppm[idx], *p[t])
             auc[t] = np.sum((model1 - model0) * delta_f)
-
         return auc
 
     def _outlier_rejection(self, params, model, signal, ii):
@@ -242,17 +244,17 @@ class GABA(object):
         
         # Now we separate choline and creatine params from each other (remember
         # that they both share offset and drift!):
-        self.creatine_params = params[:, (0,2,4,6,8,9)]
-        self.choline_params = params[:, (1,3,5,7,8,9)]
+        self.choline_params = params[:, (0,2,4,6,8,9)]
+        self.creatine_params = params[:, (1,3,5,7,8,9)]
         
         self.cr_idx = ut.make_idx(self.f_ppm, fit_lb, fit_ub)
 
         # We'll need to generate the model predictions from these parameters,
         # because what we're holding in 'model' is for both together:
-        self.creatine_model = np.zeros((self.creatine_params.shape[0],
+        self.choline_model = np.zeros((self.creatine_params.shape[0],
                                     np.abs(self.cr_idx.stop-self.cr_idx.start)))
 
-        self.choline_model = np.zeros((self.choline_params.shape[0],
+        self.creatine_model = np.zeros((self.choline_params.shape[0],
                                     np.abs(self.cr_idx.stop-self.cr_idx.start)))
         
         for idx in range(self.creatine_params.shape[0]):
@@ -260,8 +262,12 @@ class GABA(object):
             self.choline_model[idx] = ut.lorentzian(self.f_ppm[self.cr_idx],
                                                     *self.choline_params[idx])
         self.creatine_signal = signal
-        self.creatine_auc = self._calc_auc(ut.lorentzian, self.creatine_params)
-        self.choline_auc = self._calc_auc(ut.lorentzian, self.choline_params)
+        self.creatine_auc = self._calc_auc(ut.lorentzian,
+                                           self.creatine_params,
+                                           self.cr_idx)
+        self.choline_auc = self._calc_auc(ut.lorentzian,
+                                          self.choline_params,
+                                          self.cr_idx)
 
     def _gaussian_helper(self, reject_outliers, fit_lb, fit_ub, phase_correct):
         """
@@ -359,7 +365,7 @@ class GABA(object):
         self.gaba_params = params
         self.gaba_idx = this_idx
         mean_params = stats.nanmean(params, 0)
-        self.gaba_auc =  self._calc_auc(ut.gaussian, params)
+        self.gaba_auc =  self._calc_auc(ut.gaussian, params, self.gaba_idx)
 
 
     def fit_glx(self, reject_outliers=3.0, fit_lb=3.5, fit_ub=4.5,
@@ -376,7 +382,7 @@ class GABA(object):
         self.glx_params = params
         self.glx_idx = this_idx
         mean_params = stats.nanmean(params, 0)
-        self.glx_auc =  self._calc_auc(ut.gaussian, params)
+        self.glx_auc =  self._calc_auc(ut.gaussian, params, self.glx_idx)
 
 
     def est_gaba_conc(self):
