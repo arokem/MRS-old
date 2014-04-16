@@ -227,8 +227,8 @@ class GABA(object):
         # folds. The indexing operation in the end is that we get the largest
         # possible index in the case where the minimum value extends over many
         # parts of the array:
-        find_min = np.argmin(np.mean(np.vstack([rmse_odd, rmse_even]), 0))
-        final_th = zscore_thresholds[find_min]
+        find_min = np.argmin(np.mean(np.vstack([rmse_odd, rmse_even]), 0)[::-1])
+        final_th = zscore_thresholds[::-1][find_min]
         # We apply this Z score threshold across the entire data-set:
         z_score = ut.zscore(use_model)
         # Silence warnings: 
@@ -243,8 +243,7 @@ class GABA(object):
             use_model[outlier_idx] = np.nan
             use_signal[outlier_idx] = np.nan
             use_params[outlier_idx] = np.nan
-
-        1/0.
+        
         model[not_nans] = use_model
         signal[not_nans] = use_signal
         params[not_nans] = use_params
