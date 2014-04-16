@@ -502,8 +502,6 @@ def _do_two_lorentzian_fit(freqs, signal, bounds=None):
    return params
 
 
-
-
 def fit_gaussian(spectra, f_ppm, lb=2.6, ub=3.6):
    """
    Fit a gaussian function to the difference spectra to be used for estimation of
@@ -626,12 +624,16 @@ def simple_auc(spectrum, f_ppm, center=3.00, bandwidth=0.30):
 
    Notes
    -----
-   Default center and bandwidth are 3.0 and 0.3ppm respectively
-    because of Sanacora 1999 pg 1045:
-   "The GABA signal was integrated over a 0.30-ppm bandwidth at 3.00ppm"
 
-   Ref: Sanacora, G., Mason, G. F., Rothman, D. L., Behar, K. L., Hyder, F., Petroff, O. A., ... & Krystal, J. H. (1999). Reduced cortical {gamma}-aminobutyric acid levels in depressed patients determined by proton magnetic resonance spectroscopy. Archives of general psychiatry, 56(11), 1043.
+   Default center and bandwidth are 3.0 and 0.3ppm respectively because of
+   Sanacora [1]_ pg 1045:"The GABA signal was integrated over a 0.30-ppm
+   bandwidth at 3.00ppm"
 
+   [1]_ Sanacora, G., Mason, G. F., Rothman, D. L., Behar, K. L., Hyder, F.,
+   Petroff, O. A., ... & Krystal, J. H. (1999). Reduced cortical
+   {gamma}-aminobutyric acid levels in depressed patients determined by proton
+   magnetic resonance spectroscopy. Archives of general psychiatry, 56(11),
+   1043.
    """
    range = np.max(f_ppm)-np.min(f_ppm)
    dx=float(range)/float(len(f_ppm))
