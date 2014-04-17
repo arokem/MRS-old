@@ -14,7 +14,8 @@ class GABA(object):
     """
 
     def __init__(self, in_file, line_broadening=5, zerofill=100,
-                 filt_method=None, min_ppm=-0.7, max_ppm=4.3):
+                 filt_method=None, min_ppm=-0.7, max_ppm=4.3,
+                 correct_to=None):
         """
         Parameters
         ----------
@@ -34,8 +35,9 @@ class GABA(object):
 
         fit_lb, fit_ub : float
            The limits for the part of the spectrum for which we fit the
-           creatine and GABA peaks. 
-        
+           creatine and GABA peaks.
+
+        correct_to_first : bool 
         """
         # The nifti files follow the strange nifti convention, but we want to
         # use our own logic, which is transients on dim 0 and time on dim -1:
@@ -68,25 +70,33 @@ class GABA(object):
         # correction: 
         mean_freq_offset = np.mean(self.w_supp_lorentz[..., 0])
         f_hz = f_hz - mean_freq_offset
+        self.f_hz = f_hz
+        # Convert from Hz to ppm and extract the part you are interested in.
+        f_ppm = ut.freq_to_ppm(self.f_hz)
+        self.f_ppm = f_ppm
     
         self.water_fid = w_data
         self.w_supp_fid = w_supp_data
         # This is the time-domain signal of interest, combined over coils:
-        self.data = ana.subtract_water(w_data, w_supp_data)
+        sig = ana.subtract_water(w_data, w_supp_data)
 
+        # Correct for frequency and phase shifts:
+        if correct_to is not None:
+            sig[:,0,:] = ana.correct_to(sig[:,0,:], idx=correct_to)
+            sig[:,1,:] = ana.correct_to(sig[:,1,:], idx=correct_to)
+
+        self.data = sig
+        
         _, spectra = ana.get_spectra(self.data,
                                      line_broadening=line_broadening,
                                      zerofill=zerofill,
                                      filt_method=filt_method)
 
-        self.f_hz = f_hz
-        # Convert from Hz to ppm and extract the part you are interested in.
-        f_ppm = ut.freq_to_ppm(self.f_hz)
         idx0 = np.argmin(np.abs(f_ppm - min_ppm))
         idx1 = np.argmin(np.abs(f_ppm - max_ppm))
         self.idx = slice(idx1, idx0)
-        self.f_ppm = f_ppm
-    
+
+            
         self.echo_off = spectra[:, 1]
         self.echo_on = spectra[:, 0]
 
@@ -157,8 +167,6 @@ class GABA(object):
            calculated.
 
         """
-
-
         # Here's what we are going to do: For each transient, we generate
         # the spectrum for two distinct sets of parameters: one is exactly as
         # fit to the data, the other is the same expect with amplitude set to
@@ -174,6 +182,7 @@ class GABA(object):
             model0 = model(self.f_ppm[idx], *p[t])
             auc[t] = np.sum((model1 - model0) * delta_f)
         return auc
+
 
     def _outlier_rejection(self, params, model, signal, ii):
         """
@@ -268,6 +277,7 @@ class GABA(object):
         self.choline_auc = self._calc_auc(ut.lorentzian,
                                           self.choline_params,
                                           self.cr_idx)
+
 
     def _gaussian_helper(self, reject_outliers, fit_lb, fit_ub, phase_correct):
         """

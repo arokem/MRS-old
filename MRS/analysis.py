@@ -631,7 +631,7 @@ def simple_auc(spectrum, f_ppm, center=3.00, bandwidth=0.30):
 
    [1]_ Sanacora, G., Mason, G. F., Rothman, D. L., Behar, K. L., Hyder, F.,
    Petroff, O. A., ... & Krystal, J. H. (1999). Reduced cortical
-   {gamma}-aminobutyric acid levels in depressed patients determined by proton
+   $\gamma$-aminobutyric acid levels in depressed patients determined by proton
    magnetic resonance spectroscopy. Archives of general psychiatry, 56(11),
    1043.
    """
@@ -643,7 +643,49 @@ def simple_auc(spectrum, f_ppm, center=3.00, bandwidth=0.30):
 
    auc = trapz(spectrum[ub:lb].real, dx=dx)
 
-   return auc, ub, lb   
+   return auc, ub, lb
+
+def _phase_freq_shift(sig, f, phi,sampling_rate=5000.0):
+   """
+   Shift a time-domain signal by frequency and phase
+   """
+   if not isinstance(sig, nt.TimeSeries):
+       sig = nt.TimeSeries(sig, sampling_rate=sampling_rate)  
+
+   t = (np.array(sig.time)/float(sig.time._conversion_factor))[1]
+
+   sig = nt.TimeSeries(G.data[0,0, :1024], sampling_rate=5000.0)
+
+   return sig * np.exp(2*np.pi*(f*t + phi/(2*np.pi)))
+
+def correct_to(sig, idx=0, n_points=1024):
+   """
+   Correct the time-domain signal to one of the transients, to correct for
+   shifts due to B0 drift, subject motion, gradient heating, etc.
 
 
+   Parameters
+   ----------
 
+
+   Returns
+   -------
+
+   
+   Notes
+   ------
+
+   [1] Jamie Near, Richard Edden, John Evans, Rapha\"{e}l Paquin, Ashley
+   Harris, and Peter Jezzard (*in press*). Frequency and Phase Drift Correction
+   of Magnetic Resonance Spectroscopy Data by Spectral Registration in the Time
+   Domain. MRM.
+   
+   
+   """
+   sig = sig[:, :n_points]
+   if not isinstance(sig, nt.TimeSeries):
+       sig = nt.TimeSeries(sig, sampling_rate=5000.0)  
+   
+   params, _ = lsq.leastsqbound(mopt.err_func, initial,
+                                args=(freqs, np.real(signal), phase_freq),
+                                bounds=bounds)
