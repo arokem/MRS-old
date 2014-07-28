@@ -13,7 +13,7 @@ class GABA(object):
     
     """
 
-    def __init__(self, in_file, line_broadening=5, zerofill=100,
+    def __init__(self, in_file, line_broadening=7, zerofill=100,
                  filt_method=None, min_ppm=-0.7, max_ppm=4.3,
                  correct_to=None):
         """

@@ -644,7 +644,7 @@ def simple_auc(spectrum, f_ppm, center=3.00, bandwidth=0.30):
 
    return auc, ub, lb
 
-def _phase_freq_shift(sig, f, phi,sampling_rate=5000.0):
+def _phase_freq_shift(sig, f, phi, sampling_rate=5000.0):
    """
    Shift a time-domain signal by frequency and phase
    """
@@ -656,6 +656,7 @@ def _phase_freq_shift(sig, f, phi,sampling_rate=5000.0):
    sig = nt.TimeSeries(G.data[0,0, :1024], sampling_rate=5000.0)
 
    return sig * np.exp(2*np.pi*(f*t + phi/(2*np.pi)))
+
 
 def correct_to(sig, idx=0, n_points=1024):
    """
