@@ -37,7 +37,7 @@ class GABA(object):
            The limits for the part of the spectrum for which we fit the
            creatine and GABA peaks.
 
-        correct_to_first : bool
+        correct_to_first : bool 
         """
         # The nifti files follow the strange nifti convention, but we want to
         # use our own logic, which is transients on dim 0 and time on dim -1:
@@ -86,7 +86,7 @@ class GABA(object):
             sig[:,1,:] = ana.correct_to(sig[:,1,:], idx=correct_to)
 
         self.data = sig
-
+        
         _, spectra = ana.get_spectra(self.data,
                                      line_broadening=line_broadening,
                                      zerofill=zerofill,
@@ -95,7 +95,6 @@ class GABA(object):
         idx0 = np.argmin(np.abs(f_ppm - min_ppm))
         idx1 = np.argmin(np.abs(f_ppm - max_ppm))
         self.idx = slice(idx1, idx0)
-
 
         self.echo_off = spectra[:, 1]
         self.echo_on = spectra[:, 0]

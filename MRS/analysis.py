@@ -623,11 +623,10 @@ def simple_auc(spectrum, f_ppm, center=3.00, bandwidth=0.30):
       2.85 and 3.15 respectively (center +/- bandwidth/2).
 
    Notes
-   -----
-
+   -----   
    Default center and bandwidth are 3.0 and 0.3ppm respectively because of
    Sanacora [1]_ pg 1045:"The GABA signal was integrated over a 0.30-ppm
-   bandwidth at 3.00ppm"
+   bandwidth at 3.00ppm" 
 
    [1]_ Sanacora, G., Mason, G. F., Rothman, D. L., Behar, K. L., Hyder, F.,
    Petroff, O. A., ... & Krystal, J. H. (1999). Reduced cortical
@@ -671,7 +670,7 @@ def correct_to(sig, idx=0, n_points=1024):
    Returns
    -------
 
-
+   
    Notes
    ------
 
@@ -679,13 +678,13 @@ def correct_to(sig, idx=0, n_points=1024):
    Harris, and Peter Jezzard (*in press*). Frequency and Phase Drift Correction
    of Magnetic Resonance Spectroscopy Data by Spectral Registration in the Time
    Domain. MRM.
-
-
+   
+   
    """
    sig = sig[:, :n_points]
    if not isinstance(sig, nt.TimeSeries):
-       sig = nt.TimeSeries(sig, sampling_rate=5000.0)
-
+       sig = nt.TimeSeries(sig, sampling_rate=5000.0)  
+   
    params, _ = lsq.leastsqbound(mopt.err_func, initial,
                                 args=(freqs, np.real(signal), phase_freq),
                                 bounds=bounds)
